@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}Dashboard{% endblock %}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f8fb;
+      color: #0a3d62;
+      margin: 0;
+      padding: 0 20px;
+    }
+    header {
+      background: #1e3799;
+      color: white;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #dcdde1;
+      text-align: left;
+    }
+    th {
+      background-color: #1e3799;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .pagination {
+      margin: 20px 0;
+      text-align: center;
+    }
+    .pagination a, .pagination span {
+      display: inline-block;
+      margin: 0 5px;
+      padding: 8px 12px;
+      color: #1e3799;
+      border: 1px solid #1e3799;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .pagination a:hover {
+      background-color: #1e3799;
+      color: white;
+    }
+    .pagination .current {
+      background-color: #1e3799;
+      color: white;
+      border-color: #1e3799;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{% block header %}Dispatch Notifications Dashboard{% endblock %}</h1>
+  </header>
+  <main>
+    {% block content %}
+    {% endblock %}
+  </main>
+</body>
+</html>

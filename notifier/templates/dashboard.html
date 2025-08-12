@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<table>
+  <thead>
+    <tr>
+      <th>Order #</th>
+      <th>Customer Name</th>
+      <th>Dispatch Date</th>
+      <th>Email Status</th>
+      <th>SMS Status</th>
+      <th>Notes</th>
+      <th>Notified At</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for delivery in deliveries %}
+    <tr>
+      <td>{{ delivery.order_number }}</td>
+      <td>{{ delivery.customer_name}}</td>
+      <td>{{ delivery.dispatch_date }}</td>
+      <td>{{ delivery.email_status }}</td>
+      <td>{{ delivery.sms_status}}</td>
+      <td>{{ delivery.notes}}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="7" style="text-align:center;">No dispatch notifications found.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="pagination">
+  {% if deliveries.has_previous %}
+    <a href="?page=1">&laquo; First</a>
+    <a href="?page={{ deliveries.previous_page_number }}">&lt; Prev</a>
+  {% endif %}
+
+  <span class="current">Page {{ deliveries.number }} of {{ deliveries.paginator.num_pages }}</span>
+
+  {% if deliveries.has_next %}
+    <a href="?page={{ deliveries.next_page_number }}">Next &gt;</a>
+    <a href="?page={{ deliveries.paginator.num_pages }}">Last &raquo;</a>
+  {% endif %}
+</div>
+{% endblock %}
