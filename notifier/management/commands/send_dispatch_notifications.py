@@ -123,7 +123,7 @@ class Command(BaseCommand):
                 print(f"No phone found for {email}", flush=True)
             message = (
 
-                   f"Your order #{order_number}  has been dispatched and will arrive today. We’ll notify you right away if there are any delays."
+                   f"Your order #{order_number}  has been dispatched and will arrive today. We will notify you right away if there are any delays."
                         
                     )
             # message = (
@@ -132,7 +132,7 @@ class Command(BaseCommand):
             #     f"Should you have any questions, feel free to contact us via {CONTACT_PHONE}.\n"
             #     f"Thank you for choosing REXE Roofing."
             # )
-            
+
             subject = f"Your Order #{order_number} Has Been Dispatched"
 
             email_sent = False

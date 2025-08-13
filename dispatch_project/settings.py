@@ -10,13 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from email.mime import application
 from pathlib import Path
 
-import gunicorn
-from dispatch_project import dispatch_project
 
-gunicorn dispatch_project.wsgi:application --bind 0.0.0.0:8000 # type: ignore
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
