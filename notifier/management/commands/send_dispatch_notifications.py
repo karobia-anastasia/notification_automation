@@ -121,13 +121,18 @@ class Command(BaseCommand):
                 print(f"Phone for {email}: {phone}", flush=True)
             else:
                 print(f"No phone found for {email}", flush=True)
-
             message = (
-                f"Dear {customer_name},\n"
-                f"Your order #{order_number} has been dispatched today, {dispatch_date_str}, and is on its way to your location.\n\n"
-                f"Should you have any questions, feel free to contact us via {CONTACT_PHONE}.\n"
-                f"Thank you for choosing REXE Roofing."
-            )
+
+                   f"Your order #{order_number}  has been dispatched and will arrive today. We’ll notify you right away if there are any delays."
+                        
+                    )
+            # message = (
+            #     f"Dear {customer_name},\n"
+            #     f"Your order #{order_number} has been dispatched today, {dispatch_date_str}, and is on its way to your location.\n\n"
+            #     f"Should you have any questions, feel free to contact us via {CONTACT_PHONE}.\n"
+            #     f"Thank you for choosing REXE Roofing."
+            # )
+            
             subject = f"Your Order #{order_number} Has Been Dispatched"
 
             email_sent = False
