@@ -17,11 +17,12 @@
     {% for delivery in deliveries %}
     <tr>
       <td>{{ delivery.order_number }}</td>
-      <td>{{ delivery.customer_name}}</td>
-      <td>{{ delivery.dispatch_date }}</td>
-      <td>{{ delivery.email_status }}</td>
-      <td>{{ delivery.sms_status}}</td>
-      <td>{{ delivery.notes}}</td>
+      <td>{{ delivery.customer_name }}</td>
+      <td>{{ delivery.dispatch_date|date:"Y-m-d" }}</td>
+      <td>{% if delivery.email_sent %}✅{% else %}❌{% endif %}</td>
+      <td>{% if delivery.sms_sent %}✅{% else %}❌{% endif %}</td>
+      <td>{{ delivery.notes }}</td>
+      <td>{{ delivery.created_at|date:"Y-m-d H:i" }}</td>
     </tr>
     {% empty %}
     <tr>

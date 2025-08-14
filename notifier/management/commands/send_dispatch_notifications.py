@@ -1,158 +1,144 @@
+import traceback
 import xmltodict
 import requests
-from django.core.management.base import BaseCommand
+from datetime import datetime
+from decouple import config
 from notifier.models import NotifiedDelivery
 from .emails import send_email
 from .sms import send_sms
-from datetime import datetime
-from decouple import config
-import traceback
 
-# Load configuration from .env
+# Load configuration
 HANSA_API_URL = config("HANSA_API_URL")
 HANSA_GET_CUSTOMER_API_URL = config("HANSA_GET_CUSTOMER_API_URL")
 HANSA_USERNAME = config("HANSA_USERNAME")
 HANSA_PASSWORD = config("HANSA_PASSWORD")
-CONTACT_PHONE = config("CONTACT_PHONE") 
-
-
+CONTACT_PHONE = config("CONTACT_PHONE")
 def get_deliveries():
     try:
         response = requests.get(HANSA_API_URL, auth=(HANSA_USERNAME, HANSA_PASSWORD))
         response.raise_for_status()
         deliveries_xml = xmltodict.parse(response.text)
+
+        # DEBUG: print top-level keys to verify structure
+        print(f"Deliveries XML root keys: {list(deliveries_xml.keys())}", flush=True)
+
     except Exception as e:
-        print(f"Error fetching deliveries: {str(e)}", flush=True)
+        print(f"Error fetching deliveries: {e}", flush=True)
         return []
 
     data = deliveries_xml.get('data')
     if not data:
-        print("No data found in response.", flush=True)
+        print(f"No 'data' key found in deliveries response. Available keys: {list(deliveries_xml.keys())}", flush=True)
         return []
+
+    print(f"'data' keys: {list(data.keys())}", flush=True)
 
     shvc_entries = data.get('SHVc')
     if not shvc_entries:
-        print("No SHVc entries found.", flush=True)
+        print(f"No 'SHVc' entries found in deliveries data. Available keys: {list(data.keys())}", flush=True)
         return []
 
     if isinstance(shvc_entries, dict):
         shvc_entries = [shvc_entries]
 
+    print(f"Found {len(shvc_entries)} deliveries", flush=True)
     return shvc_entries
 
+# def get_deliveries():
+#     try:
+#         response = requests.get(HANSA_API_URL, auth=(HANSA_USERNAME, HANSA_PASSWORD))
+#         response.raise_for_status()
+#         deliveries_xml = xmltodict.parse(response.text)
+#     except Exception as e:
+#         print(f"Error fetching deliveries: {e}", flush=True)
+#         return []
+
+#     data = deliveries_xml.get('data')
+#     if not data:
+#         print("No 'data' key found in deliveries response.", flush=True)
+#         return []
+
+#     shvc_entries = data.get('SHVc')
+#     if not shvc_entries:
+#         print("No 'SHVc' entries found in deliveries data.", flush=True)
+#         return []
+
+#     if isinstance(shvc_entries, dict):
+#         shvc_entries = [shvc_entries]
+
+#     print(f"Found {len(shvc_entries)} deliveries", flush=True)
+#     return shvc_entries
 
 def fetch_all_customers():
     try:
-        print("Fetching all customers from API...", flush=True)
-        api_url = f"{HANSA_GET_CUSTOMER_API_URL}"
-        response = requests.get(api_url, auth=(HANSA_USERNAME, HANSA_PASSWORD))
-
-        response.raise_for_status()  
-
+        response = requests.get(HANSA_GET_CUSTOMER_API_URL, auth=(HANSA_USERNAME, HANSA_PASSWORD))
+        response.raise_for_status()
         customers_data = xmltodict.parse(response.text)
-
-        return customers_data.get('data', {}).get('CUVc', [])  
-
-    except requests.exceptions.RequestException as e:
-        print(f"Request failed: {e}", flush=True)
-    except xmltodict.expat.ExpatError as e:
-        print(f"Error parsing XML response: {e}", flush=True)
-        print(f"Response content: {response.text}", flush=True) 
-    except Exception as e:
-        print(f"Error fetching customers: {e}", flush=True)
-        print(traceback.format_exc(), flush=True)
-
-    return [] 
-
+        return customers_data.get('data', {}).get('CUVc', [])
+    except Exception:
+        print("Error fetching customers:\n", traceback.format_exc(), flush=True)
+        return []
 
 def get_customer_phone(customer_email, customers_data):
     for customer in customers_data:
-        if str(customer.get('eMail')).strip().lower() == str(customer_email).strip().lower():
-            print(f"Found customer with email: {customer_email}", flush=True)
+        if str(customer.get('eMail', '')).strip().lower() == str(customer_email).strip().lower():
             phone = customer.get('Phone') or customer.get('Mobile') or customer.get('AltPhone')
+            print(f"Phone found for {customer_email}: {phone}", flush=True)
             return phone
-    print(f"No customer found for email: {customer_email}", flush=True)
+    print(f"No customer phone found for email: {customer_email}", flush=True)
     return None
 
+def run_dispatch_notification_job():
+    customers_data = fetch_all_customers()
+    if not customers_data:
+        print("No customer data found.", flush=True)
+        return
 
+    deliveries = get_deliveries()
+    if not deliveries:
+        print("No deliveries found.", flush=True)
+        return
 
-class Command(BaseCommand):
-    help = 'Send dispatch email and SMS notifications'
+    print(f"Processing {len(deliveries)} deliveries", flush=True)
 
-    def handle(self, *args, **options):
-        customers_data = fetch_all_customers()
-        if not customers_data:
-            print("No customer data found.", flush=True)
-            return
-
-        deliveries = get_deliveries()  
-        if not deliveries:
-            print("No deliveries found.", flush=True)
-            return
-
-        for delivery in deliveries:
+    for delivery in deliveries:
+        try:
             order_number = delivery.get('SerNr', 'N/A')
-
             if NotifiedDelivery.objects.filter(order_number=order_number).exists():
-                email = delivery.get('Addr1')
-                phone = None 
-
-                if email:
-                    phone = get_customer_phone(email, customers_data)
-                
-                print(f"Order {order_number} already notified. Email: {email}, Phone: {phone}", flush=True)
-                continue  
+                print(f"Order {order_number} already notified, skipping.", flush=True)
+                continue
 
             customer_name = delivery.get('Addr0', 'Unknown')
             dispatch_date_str = delivery.get('PlanSendDate')
             dispatch_date = None
-
             if dispatch_date_str:
                 try:
                     dispatch_date = datetime.strptime(dispatch_date_str, '%Y-%m-%d').date()
                 except Exception:
-                    pass
+                    print(f"Failed to parse dispatch date {dispatch_date_str} for order {order_number}", flush=True)
 
             email = delivery.get('Addr1')
+            phone = get_customer_phone(email, customers_data) if email else None
 
-            phone = get_customer_phone(email, customers_data)
-
-            if phone:
-                print(f"Phone for {email}: {phone}", flush=True)
-            else:
-                print(f"No phone found for {email}", flush=True)
             message = (
-
-                   f"Your order #{order_number}  has been dispatched and will arrive today. We will notify you right away if there are any delays."
-                        
-                    )
-            # message = (
-            #     f"Dear {customer_name},\n"
-            #     f"Your order #{order_number} has been dispatched today, {dispatch_date_str}, and is on its way to your location.\n\n"
-            #     f"Should you have any questions, feel free to contact us via {CONTACT_PHONE}.\n"
-            #     f"Thank you for choosing REXE Roofing."
-            # )
-
+                f"Your order #{order_number} has been dispatched and will arrive today. "
+                f"We will notify you right away if there are any delays."
+            )
             subject = f"Your Order #{order_number} Has Been Dispatched"
 
-            email_sent = False
-            sms_sent = False
-
-            if email:
-                email_sent = send_email(email, subject, message)
-            if phone:
-                sms_sent = send_sms(phone, message)
+            email_sent = send_email(email, subject, message) if email else False
+            sms_sent = send_sms(phone, message) if phone else False
 
             rows = delivery.get('rows', {}).get('row')
             if isinstance(rows, list):
-                row_data = rows[0]
+                row_data = rows[0] if rows else {}
             elif isinstance(rows, dict):
                 row_data = rows
             else:
                 row_data = {}
 
             NotifiedDelivery.objects.create(
-                order_number=delivery.get('SerNr'),
+                order_number=order_number,
                 customer_name=customer_name,
                 dispatch_date=dispatch_date,
                 status=delivery.get('Status', '-'),
@@ -168,7 +154,7 @@ class Command(BaseCommand):
                 unit=row_data.get('UnitCode'),
                 price=row_data.get('Price'),
                 base_price=row_data.get('BasePrice'),
-                cost_account=row_data.get('CostAcc'),
+                cost_account=delivery.get('CostAcc'),
                 email=email,
                 phone_number=phone,
                 email_sent=email_sent,
@@ -176,3 +162,6 @@ class Command(BaseCommand):
                 notes=""
             )
             print(f"NotifiedDelivery created for order {order_number}", flush=True)
+        except Exception as e:
+            print(f"Error processing delivery {delivery.get('SerNr', 'N/A')}: {e}", flush=True)
+            print(traceback.format_exc(), flush=True)
