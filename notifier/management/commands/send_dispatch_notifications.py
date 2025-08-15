@@ -6,6 +6,7 @@ from decouple import config
 from notifier.models import NotifiedDelivery
 from .emails import send_email
 from .sms import send_sms
+from django.utils import timezone
 
 # Load configuration
 HANSA_API_URL = config("HANSA_API_URL")
@@ -65,6 +66,9 @@ def get_customer_phone(customer_email, customers_data):
     return None
 
 def run_dispatch_notification_job():
+    # Import timezone if not already at the top of your file
+    from django.utils import timezone
+    
     customers_data = fetch_all_customers()
     if not customers_data:
         print("No customer data found.", flush=True)
@@ -90,8 +94,9 @@ def run_dispatch_notification_job():
             if dispatch_date_str:
                 try:
                     dispatch_date = datetime.strptime(dispatch_date_str, '%Y-%m-%d').date()
-                except Exception:
-                    print(f"Failed to parse dispatch date {dispatch_date_str} for order {order_number}", flush=True)
+                except Exception as e:
+                    print(f"Failed to parse dispatch date {dispatch_date_str} for order {order_number}: {str(e)}", flush=True)
+                    dispatch_date = None
 
             email = delivery.get('Addr1')
             phone = get_customer_phone(email, customers_data) if email else None
@@ -113,7 +118,8 @@ def run_dispatch_notification_job():
             else:
                 row_data = {}
 
-            NotifiedDelivery.objects.create(
+            # Create the notification record
+            notified_delivery = NotifiedDelivery(
                 order_number=order_number,
                 customer_name=customer_name,
                 dispatch_date=dispatch_date,
@@ -137,7 +143,15 @@ def run_dispatch_notification_job():
                 sms_sent=sms_sent,
                 notes=""
             )
-            print(f"NotifiedDelivery created for order {order_number}", flush=True)
+            
+            # Set created_at - using current time is more accurate than dispatch_date
+            notified_delivery.created_at = timezone.now()
+            
+            # Save the record
+            notified_delivery.save()
+
+            print(f"NotifiedDelivery created for order {order_number} with timestamp {notified_delivery.created_at}", flush=True)
+            
         except Exception as e:
             print(f"Error processing delivery {delivery.get('SerNr', 'N/A')}: {e}", flush=True)
             print(traceback.format_exc(), flush=True)

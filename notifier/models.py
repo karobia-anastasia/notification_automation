@@ -23,7 +23,8 @@ class NotifiedDelivery(models.Model):
     email_sent = models.BooleanField(default=False)
     sms_sent = models.BooleanField(default=False)
     notes = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+
 
     def __str__(self):
         return f"Order {self.order_number} - {self.customer_name}"

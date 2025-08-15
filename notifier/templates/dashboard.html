@@ -9,8 +9,7 @@
       <th>Dispatch Date</th>
       <th>Email Status</th>
       <th>SMS Status</th>
-      <th>Notes</th>
-      <th>Notified At</th>
+    
     </tr>
   </thead>
   <tbody>
@@ -21,8 +20,7 @@
       <td>{{ delivery.dispatch_date|date:"Y-m-d" }}</td>
       <td>{% if delivery.email_sent %}✅{% else %}❌{% endif %}</td>
       <td>{% if delivery.sms_sent %}✅{% else %}❌{% endif %}</td>
-      <td>{{ delivery.notes }}</td>
-      <td>{{ delivery.created_at|date:"Y-m-d H:i" }}</td>
+
     </tr>
     {% empty %}
     <tr>
