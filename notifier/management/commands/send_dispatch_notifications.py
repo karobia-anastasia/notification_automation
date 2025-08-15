@@ -44,30 +44,6 @@ def get_deliveries():
     print(f"Found {len(shvc_entries)} deliveries", flush=True)
     return shvc_entries
 
-# def get_deliveries():
-#     try:
-#         response = requests.get(HANSA_API_URL, auth=(HANSA_USERNAME, HANSA_PASSWORD))
-#         response.raise_for_status()
-#         deliveries_xml = xmltodict.parse(response.text)
-#     except Exception as e:
-#         print(f"Error fetching deliveries: {e}", flush=True)
-#         return []
-
-#     data = deliveries_xml.get('data')
-#     if not data:
-#         print("No 'data' key found in deliveries response.", flush=True)
-#         return []
-
-#     shvc_entries = data.get('SHVc')
-#     if not shvc_entries:
-#         print("No 'SHVc' entries found in deliveries data.", flush=True)
-#         return []
-
-#     if isinstance(shvc_entries, dict):
-#         shvc_entries = [shvc_entries]
-
-#     print(f"Found {len(shvc_entries)} deliveries", flush=True)
-#     return shvc_entries
 
 def fetch_all_customers():
     try:
