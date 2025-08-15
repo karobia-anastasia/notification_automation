@@ -1,6 +1,8 @@
 import sys
 import logging
 from django.apps import AppConfig
+import os
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ class NotifierConfig(AppConfig):
             # Schedule the job
             scheduler.add_job(
                 scheduled_dispatch_job,
-                trigger=IntervalTrigger(minutes=10),
+                trigger=IntervalTrigger(minutes=1),
                 id="dispatch_notification_job",
                 name="Dispatch Notification Job",
                 replace_existing=True,
@@ -41,7 +43,7 @@ class NotifierConfig(AppConfig):
             register_events(scheduler)
             scheduler.start()
 
-            logger.info("✅ APScheduler started: dispatch notification job scheduled every 10 minutes")
+            logger.info("✅ APScheduler started: dispatch notification job scheduled every 1 minutes")
 
         except Exception as e:
             logger.error("❌ Failed to start APScheduler: %s", str(e), exc_info=True)
